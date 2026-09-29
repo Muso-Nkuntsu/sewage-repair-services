@@ -1,0 +1,127 @@
+// Prisma schema for the Sewage Repair Service.
+// Keep this in sync with database/schema.sql.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  RESIDENT
+  ADMIN
+}
+
+enum IssueType {
+  BURST_PIPE
+  BLOCKED_DRAIN
+  SEWAGE_OVERFLOW
+  OTHER
+}
+
+enum ReportStatus {
+  REPORTED
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CANCELLED
+}
+
+enum TeamStatus {
+  ON_DUTY
+  OFF_DUTY
+}
+
+enum InspectionStatus {
+  SCHEDULED
+  COMPLETED
+  ISSUE_FOUND
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  firstName   String   @db.VarChar(100)
+  lastName    String   @db.VarChar(100)
+  email       String   @unique @db.VarChar(191)
+  phoneNumber String?  @db.VarChar(30)
+  password    String   @db.VarChar(255)
+  role        Role     @default(RESIDENT)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reports Report[]
+
+  @@map("users")
+}
+
+model Team {
+  id              Int        @id @default(autoincrement())
+  name            String     @unique @db.VarChar(100)
+  contactNumber   String?    @db.VarChar(30)
+  technicianCount Int        @default(2)
+  status          TeamStatus @default(ON_DUTY)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  reports Report[]
+
+  @@map("teams")
+}
+
+model Report {
+  id              Int          @id @default(autoincrement())
+  referenceNumber Int          @unique
+  issueType       IssueType
+  location        String       @db.VarChar(191)
+  landmark        String?      @db.VarChar(191)
+  description     String       @db.Text
+  contactPhone    String?      @db.VarChar(30)
+  status          ReportStatus @default(REPORTED)
+  residentId      Int
+  assignedTeamId  Int?
+  eta             String?      @db.VarChar(100)
+  resolvedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  resident      User           @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  assignedTeam  Team?          @relation(fields: [assignedTeamId], references: [id], onDelete: SetNull)
+  repairUpdates RepairUpdate[]
+
+  @@index([residentId])
+  @@index([assignedTeamId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("reports")
+}
+
+model RepairUpdate {
+  id        Int          @id @default(autoincrement())
+  reportId  Int
+  status    ReportStatus
+  comment   String       @db.Text
+  createdAt DateTime     @default(now())
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@map("repair_updates")
+}
+
+model Inspection {
+  id             Int              @id @default(autoincrement())
+  location       String           @db.VarChar(191)
+  inspectionDate DateTime
+  inspectorName  String           @db.VarChar(100)
+  findings       String?          @db.Text
+  status         InspectionStatus @default(SCHEDULED)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([inspectionDate])
+  @@index([status])
+  @@map("inspections")
+}
