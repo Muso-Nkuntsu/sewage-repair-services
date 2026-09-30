@@ -16,9 +16,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
       <div className="mt-6 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-xs text-muted">
         <p className="font-semibold text-navy">Demo accounts</p>
-        <p className="mt-1">
-          Admin: <span className="font-mono">admin@sewage.local</span> / <span className="font-mono">Admin123!</span>
-        </p>
         <p>
           Resident: <span className="font-mono">resident1@sewage.local</span> /{" "}
           <span className="font-mono">Resident123!</span>
