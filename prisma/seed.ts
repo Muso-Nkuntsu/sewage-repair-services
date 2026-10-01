@@ -37,13 +37,23 @@ type SeedReport = {
   updates: SeedUpdate[];
 };
 
+const DEMO_ADMIN_EMAIL = "admin@sewage.local";
+
 async function main() {
   console.log("Clearing existing data...");
   await prisma.repairUpdate.deleteMany();
   await prisma.report.deleteMany();
   await prisma.inspection.deleteMany();
   await prisma.team.deleteMany();
-  await prisma.user.deleteMany();
+  // Remove residents and the demo admin, but KEEP any other admin accounts
+  // (e.g. ones created with `npm run create-admin`), so re-seeding never locks you out.
+  await prisma.user.deleteMany({
+    where: { OR: [{ role: "RESIDENT" }, { email: DEMO_ADMIN_EMAIL }] },
+  });
+  const keptAdmins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } });
+  if (keptAdmins.length > 0) {
+    console.log(`Kept admin accounts: ${keptAdmins.map((admin) => admin.email).join(", ")}`);
+  }
 
   console.log("Creating users...");
   const adminPassword = await bcrypt.hash("Admin123!", 10);
@@ -53,7 +63,7 @@ async function main() {
     data: {
       firstName: "Admin",
       lastName: "User",
-      email: "admin@sewage.local",
+      email: DEMO_ADMIN_EMAIL,
       phoneNumber: "021 555 0100",
       password: adminPassword,
       role: "ADMIN",
